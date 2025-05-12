@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cesium Globe Click Location</title>
+
+  <!-- CesiumJS CDN -->
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.112/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.112/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
+  
+  <script>
+    Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJiM2NjZmM0Ni1jMTNlLTRkNDItOTY0Ny0xZDAyOGVkZTU1MzYiLCJpZCI6MzAxNDczLCJpYXQiOjE3NDY5NzUxMDF9.3aS8jHf5v7R3t4iYOZbEd_7KsCvSsv5bwa7EmhvbtEA';
+  </script>
+  
+  <style>
+    html, body, #cesiumContainer {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    #infoBox {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      font-family: sans-serif;
+      z-index: 999;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="cesiumContainer"></div>
+  <div id="infoBox">Click on the globe to get location info...</div>
+
+  <script>
+    // Initialize Cesium Viewer
+    const viewer = new Cesium.Viewer("cesiumContainer", {
+      infoBox: false,
+      selectionIndicator: false,
+      shouldAnimate: true
+    });
+
+    const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    const infoBox = document.getElementById("infoBox");
+
+    handler.setInputAction(function (click) {
+      const pickedPosition = viewer.scene.pickPosition(click.position);
+
+      if (Cesium.defined(pickedPosition)) {
+        const cartographic = Cesium.Cartographic.fromCartesian(pickedPosition);
+        const longitude = Cesium.Math.toDegrees(cartographic.longitude).toFixed(6);
+        const latitude = Cesium.Math.toDegrees(cartographic.latitude).toFixed(6);
+
+        infoBox.innerText = `Lat: ${latitude}, Lon: ${longitude} — Looking up location...`;
+
+        // OpenStreetMap Reverse Geocoding (Nominatim)
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`)
+          .then(res => res.json())
+          .then(data => {
+            const address = data.address;
+            const city = address.city || address.town || address.village || address.hamlet || "Unknown city";
+            const country = address.country || "Unknown country";
+            infoBox.innerText = `You clicked: ${city}, ${country}`;
+          })
+          .catch(() => {
+            infoBox.innerText = `Lat: ${latitude}, Lon: ${longitude} — Location not found.`;
+          });
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+  </script>
+</body>
+</html>
