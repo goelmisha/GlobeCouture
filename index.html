@@ -58,7 +58,7 @@
 
         infoBox.innerText = `Lat: ${latitude}, Lon: ${longitude} — Looking up location...`;
 
-        // OpenStreetMap Reverse Geocoding (Nominatim)
+        // 1. Do reverse geocoding
         fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`)
           .then(res => res.json())
           .then(data => {
@@ -66,10 +66,26 @@
             const city = address.city || address.town || address.village || address.hamlet || "Unknown city";
             const country = address.country || "Unknown country";
             infoBox.innerText = `You clicked: ${city}, ${country}`;
+
+            // 2. Then send to your backend (Perplexity prompt)
+            fetch('http://localhost:5000/ask', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ city, country })
+            })
+            .then(response => response.json())
+            .then(result => {
+              infoBox.innerText += `\nAI says: ${result.reply}`;
+            })
+            .catch(() => {
+              infoBox.innerText += '\n[Error contacting AI backend]';
+            });
+
           })
           .catch(() => {
             infoBox.innerText = `Lat: ${latitude}, Lon: ${longitude} — Location not found.`;
           });
+
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
   </script>
